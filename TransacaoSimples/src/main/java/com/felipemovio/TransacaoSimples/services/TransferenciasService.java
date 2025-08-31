@@ -16,12 +16,15 @@ public class TransferenciasService {
 
     private final UsuarioService usuarioService;
 
+    private final AutorizacaoService autorizacaoService;
+
     public void transferirValores(TransacaoDTO transacaoDTO){
         // Lógica de transferência de valores entre contas
         Usuario pagador = usuarioService.buscarPOrUsuario(transacaoDTO.payer());
         Usuario recebedor = usuarioService.buscarPOrUsuario(transacaoDTO.payee());
         validarPagador(pagador);
         validarSaldoUsuario(pagador, transacaoDTO.value());
+        validarTransferencia();
 
     }
 
@@ -47,5 +50,16 @@ public class TransferenciasService {
             throw new IllegalArgumentException(e.getMessage());
         }
 
+    }
+
+    // validar transação
+    private void validarTransferencia(){
+        try {
+            if (!autorizacaoService.validarTransacao()){
+                throw new IllegalArgumentException("Transação não autorizada pela API.");
+            }
+        }catch (Exception e){
+            throw new IllegalArgumentException(e.getMessage());
+        }
     }
 }
