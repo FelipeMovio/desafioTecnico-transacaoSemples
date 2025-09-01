@@ -1,10 +1,12 @@
 package com.felipemovio.TransacaoSimples.services;
 
 
-import com.felipemovio.TransacaoSimples.DTO.TransacaoDTO;
+import com.felipemovio.TransacaoSimples.controller.TransacaoDTO;
 import com.felipemovio.TransacaoSimples.entity.TipoUsuario;
+import com.felipemovio.TransacaoSimples.entity.Transacoes;
 import com.felipemovio.TransacaoSimples.entity.Usuario;
-import com.felipemovio.TransacaoSimples.repository.UsuarioRepository;
+import com.felipemovio.TransacaoSimples.repository.TransacoesRepository;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -15,27 +17,54 @@ import java.math.BigDecimal;
 public class TransferenciasService {
 
     private final UsuarioService usuarioService;
-
     private final AutorizacaoService autorizacaoService;
+    private final CarteiraService carteiraService;
+    private final TransacoesRepository transacoesRepository;
+    private final NotificacaoService notificacaoService;
 
+    @Transactional
     public void transferirValores(TransacaoDTO transacaoDTO){
         // Lógica de transferência de valores entre contas
+
+        // Buscar o usuário pagador e recebedor no banco de dados
         Usuario pagador = usuarioService.buscarPOrUsuario(transacaoDTO.payer());
         Usuario recebedor = usuarioService.buscarPOrUsuario(transacaoDTO.payee());
+
+        // Validar se o pagador é um usuário comum
         validarPagador(pagador);
+        // Validar se o pagador tem saldo suficiente
         validarSaldoUsuario(pagador, transacaoDTO.value());
+        // Validar a transação com a API externa
         validarTransferencia();
 
+        // Atualizar o saldo do pagador , subtract = subtrair
+        pagador.getCarteira().setSaldo(pagador.getCarteira().getSaldo().subtract(transacaoDTO.value()));
+        carteiraService.salvar(pagador.getCarteira());
+
+        // Atualizar o saldo do recebedor , add = adicionar
+        recebedor.getCarteira().setSaldo(recebedor.getCarteira().getSaldo().add(transacaoDTO.value()));
+        carteiraService.salvar(recebedor.getCarteira());
+
+        // Registrar a transação no banco de dados
+        Transacoes transacoes = Transacoes.builder()
+                .valor(transacaoDTO.value())
+                .pagador(pagador)
+                .recebedor(recebedor)
+                .build();
+        transacoesRepository.save(transacoes);
+
+        // Enviar notificação
+        enviarNotificacoes();
     }
 
-    //validar se nosso pagador naob é um lojista
+    //validar se nosso pagador nao é um lojista
     private void validarPagador(Usuario usuario){
-        try {
-            if (usuario.getTipoUsuario().equals(TipoUsuario.LOJISTA)){
-                throw new IllegalArgumentException("Lojistas não podem realizar transferências.");
-            }
-        }catch (Exception e){
-            throw new IllegalArgumentException(e.getMessage());
+        if (usuario.getTipoUsuario().equals(TipoUsuario.LOJISTA)){
+            throw new IllegalArgumentException("Lojistas não podem realizar transferências.");
+        } else if (usuario.getTipoUsuario().equals(TipoUsuario.COMUN)) {
+            return;
+        } else {
+            throw new IllegalArgumentException("Tipo de usuário inválido.");
         }
     }
 
@@ -59,6 +88,15 @@ public class TransferenciasService {
                 throw new IllegalArgumentException("Transação não autorizada pela API.");
             }
         }catch (Exception e){
+            throw new IllegalArgumentException(e.getMessage());
+        }
+    }
+
+    // Enviar notificação
+    private void enviarNotificacoes() {
+        try {
+            notificacaoService.enviarNotificacao();
+        } catch (Exception e) {
             throw new IllegalArgumentException(e.getMessage());
         }
     }
