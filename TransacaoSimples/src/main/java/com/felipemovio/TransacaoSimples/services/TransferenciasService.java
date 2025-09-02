@@ -27,8 +27,8 @@ public class TransferenciasService {
         // Lógica de transferência de valores entre contas
 
         // Buscar o usuário pagador e recebedor no banco de dados
-        Usuario pagador = usuarioService.buscarPOrUsuario(transacaoDTO.payer());
-        Usuario recebedor = usuarioService.buscarPOrUsuario(transacaoDTO.payee());
+        Usuario pagador = usuarioService.buscarPorUsuario(transacaoDTO.payer());
+        Usuario recebedor = usuarioService.buscarPorUsuario(transacaoDTO.payee());
 
         // Validar se o pagador é um usuário comum
         validarPagador(pagador);

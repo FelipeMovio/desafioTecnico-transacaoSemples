@@ -11,7 +11,7 @@ public class UsuarioService {
 
     private final UsuarioRepository repository;
 
-    public Usuario buscarPOrUsuario(Long id){
+    public Usuario buscarPorUsuario(Long id){
         return repository.findById(id).orElseThrow( () -> new RuntimeException("Usuário não encontrado") );
     }
 }
