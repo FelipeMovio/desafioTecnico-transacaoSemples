@@ -13,10 +13,6 @@ public class AutorizacaoService {
 
     // Método para validar a transação
     public boolean validarTransacao(){
-        if (Objects.equals(client.validarAutorizacao().data().authorization(), "Autorizado")){
-            return true;
-        }else {
-            return false;
-        }
+        return Objects.equals(client.validarAutorizacao().data().authorization(), "true");
     }
 }

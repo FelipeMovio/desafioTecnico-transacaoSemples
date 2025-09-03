@@ -20,10 +20,9 @@ public class TransferenciasService {
     private final AutorizacaoService autorizacaoService;
     private final CarteiraService carteiraService;
     private final TransacoesRepository transacoesRepository;
-    private final NotificacaoService notificacaoService;
 
     @Transactional
-    public void transferirValores(TransacaoDTO transacaoDTO){
+    public void transferirValores(TransacaoDTO transacaoDTO) {
         // Lógica de transferência de valores entre contas
 
         // Buscar o usuário pagador e recebedor no banco de dados
@@ -53,51 +52,42 @@ public class TransferenciasService {
                 .build();
         transacoesRepository.save(transacoes);
 
-        // Enviar notificação
-        enviarNotificacoes();
     }
 
     //validar se nosso pagador nao é um lojista
-    private void validarPagador(Usuario usuario){
-        if (usuario.getTipoUsuario().equals(TipoUsuario.LOJISTA)){
+    private void validarPagador(Usuario usuario) {
+        if (usuario.getTipoUsuario().equals(TipoUsuario.LOJISTA)) {
             throw new IllegalArgumentException("Lojistas não podem realizar transferências.");
         } else if (usuario.getTipoUsuario().equals(TipoUsuario.COMUN)) {
             return;
-        } else {
-            throw new IllegalArgumentException("Tipo de usuário inválido.");
         }
     }
 
     // validar saldo usuario
-    private void validarSaldoUsuario(Usuario usuario, BigDecimal valor){
+    private void validarSaldoUsuario(Usuario usuario, BigDecimal valor) {
 
         try {
-            if (usuario.getCarteira().getSaldo().compareTo(valor) < 0){
+            if (usuario.getCarteira().getSaldo().compareTo(valor) < 0) {
                 throw new IllegalArgumentException("Saldo insuficiente para realizar a transferência.");
             }
-        }catch (Exception e){
+        } catch (Exception e) {
             throw new IllegalArgumentException(e.getMessage());
         }
 
     }
 
     // validar transação
-    private void validarTransferencia(){
+    private void validarTransferencia() {
         try {
-            if (!autorizacaoService.validarTransacao()){
-                throw new IllegalArgumentException("Transação não autorizada pela API.");
+            if (autorizacaoService.validarTransacao()) {
+                System.out.println("Transacao aceita");
+            } else if (!autorizacaoService.validarTransacao()) {
+                System.out.println("Transacao nao autorizada");
             }
-        }catch (Exception e){
+        }catch (Exception e) {
+            System.out.println("Ocorreu um erro ao validar a transacao: " + e.getMessage());
             throw new IllegalArgumentException(e.getMessage());
         }
     }
 
-    // Enviar notificação
-    private void enviarNotificacoes() {
-        try {
-            notificacaoService.enviarNotificacao();
-        } catch (Exception e) {
-            throw new IllegalArgumentException(e.getMessage());
-        }
-    }
 }
